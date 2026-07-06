@@ -1,12 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from uuid6 import uuid7
+from base.models import BaseModel
 
 # Create your models here.
 
-class CustomUser(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
+class CustomUser(BaseModel, AbstractUser):
     email = models.EmailField(unique=True)
+
+    class Meta(BaseModel.Meta, AbstractUser.Meta):
+        abstract = False
 
     def __str__(self):
         return str(self.id)
