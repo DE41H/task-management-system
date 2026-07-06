@@ -1,6 +1,7 @@
 .git/
 .venv/
 docs/
+docker/
 .env.*
 *.md
 .gitignore
