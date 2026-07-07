@@ -3,8 +3,11 @@ from .models import Membership, Role
 
 class Scope:
     TEAM_VIEW = 'team:view'
+    TEAM_UPDATE = 'team:update'
     TEAM_INVITE = 'team:invite'
+    TEAM_REMOVE = 'team:remove'
     TEAM_CHANGE_ROLES = 'team:change_roles'
+    TEAM_DELETE = 'team:delete'
     PROJECT_CREATE = 'project:create'
     PROJECT_EDIT = 'project:edit'
     PROJECT_DELETE = 'project:delete'
@@ -19,7 +22,7 @@ SCOPES: dict[str, set] = {}
 SCOPES[Role.VIEWER] = {Scope.TEAM_VIEW, Scope.TASK_VIEW, Scope.COMMENT}
 SCOPES[Role.MEMBER] = {*SCOPES[Role.VIEWER], Scope.TASK_CREATE, Scope.TASK_UPDATE}
 SCOPES[Role.MAINTAINER] = {*SCOPES[Role.MEMBER], Scope.TEAM_INVITE, Scope.PROJECT_CREATE, Scope.PROJECT_EDIT, Scope.PROJECT_DELETE, Scope.TASK_ASSIGN, Scope.TASK_DELETE}
-SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES}
+SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES, Scope.TEAM_UPDATE, Scope.TEAM_DELETE, Scope.TEAM_REMOVE}
 
 def HasPermission(*scopes):
     class _HasPermission(BasePermission):
