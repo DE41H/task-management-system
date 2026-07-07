@@ -11,3 +11,8 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
     "uuid6>=2025.0.1",
 ]
+
+[dependency-groups]
+dev = [
+    "django-types>=0.24.0",
+]
