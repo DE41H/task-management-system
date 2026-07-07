@@ -1,0 +1,37 @@
+from rest_framework.permissions import BasePermission
+from .models import Membership, Role
+
+class Scope:
+    TEAM_VIEW = 'team:view'
+    TEAM_INVITE = 'team:invite'
+    TEAM_CHANGE_ROLES = 'team:change_roles'
+    PROJECT_CREATE = 'project:create'
+    PROJECT_EDIT = 'project:edit'
+    PROJECT_DELETE = 'project:delete'
+    TASK_CREATE = 'task:create'
+    TASK_ASSIGN = 'task:assign'
+    TASK_UPDATE = 'task:update'
+    TASK_DELETE = 'task:delete'
+    TASK_VIEW = 'task:view'
+    COMMENT = 'task:comment'
+
+SCOPES: dict[str, set] = {}
+SCOPES[Role.VIEWER] = {Scope.TEAM_VIEW, Scope.TASK_VIEW, Scope.COMMENT}
+SCOPES[Role.MEMBER] = {*SCOPES[Role.VIEWER], Scope.TASK_CREATE, Scope.TASK_UPDATE}
+SCOPES[Role.MAINTAINER] = {*SCOPES[Role.MEMBER], Scope.TEAM_INVITE, Scope.PROJECT_CREATE, Scope.PROJECT_EDIT, Scope.PROJECT_DELETE, Scope.TASK_ASSIGN, Scope.TASK_DELETE}
+SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES}
+
+def HasPermission(*scopes):
+    class _HasPermission(BasePermission):
+        def has_permission(self, request, view):  # pyright: ignore[reportIncompatibleMethodOverride]
+            team_id = view.kwargs.get('team_id')
+            if not team_id:
+                return False
+            try:
+                membership = Membership.objects.get(user=request.user, team_id=team_id)
+                role = membership.role
+            except Membership.DoesNotExist:
+                return False
+            allowed_scopes = SCOPES[role]
+            return allowed_scopes.issuperset(scopes)
+    return _HasPermission
