@@ -39,6 +39,7 @@ class InvitationStatus(models.TextChoices):
     ACCEPTED = 'accepted'
     PENDING = 'pending'
     REJECTED = 'rejected'
+    CANCELLED = 'cancelled'
 
 def default_invitation_expiry():
     return now() + timedelta(days=3)
@@ -50,6 +51,7 @@ class Invitation(BaseModel):
     receiver = models.ForeignKey(to='users.CustomUser', on_delete=models.CASCADE, related_name='invites_received')
     expires_at = models.DateTimeField(default=default_invitation_expiry)
     status = models.CharField(max_length=10, choices=InvitationStatus.choices, default=InvitationStatus.PENDING)
+    message = models.CharField(max_length=600)
 
     class Meta(BaseModel.Meta):
         abstract = False
