@@ -1,6 +1,6 @@
-from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import now
+from datetime import timedelta
 from base.models import BaseModel
 
 # Create your models here.
@@ -63,15 +63,6 @@ class Invitation(BaseModel):
     @property
     def is_expired(self):
         return now() >= self.expires_at
-
-    def clean(self):
-        super().clean()
-        if self.status == InvitationStatus.PENDING and Membership.objects.filter(user=self.receiver, team=self.team).exists():
-            raise ValidationError({'receiver': 'This user is already a member of the team'})
-
-    def save(self, *args, **kwargs) -> None:
-        self.clean()
-        return super().save(*args, **kwargs)
 
     def __str__(self):
         return str(self.id)
