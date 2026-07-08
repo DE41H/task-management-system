@@ -40,6 +40,7 @@ class InvitationStatus(models.TextChoices):
     PENDING = 'pending'
     REJECTED = 'rejected'
     CANCELLED = 'cancelled'
+    EXPIRED = 'expired'
 
 def default_invitation_expiry():
     return now() + timedelta(days=3)
@@ -56,13 +57,8 @@ class Invitation(BaseModel):
     class Meta(BaseModel.Meta):
         abstract = False
         constraints = [
-            models.UniqueConstraint(fields=['team', 'receiver', 'role'], condition=models.Q(status=InvitationStatus.PENDING), name='unique_team_receiver_role_invite'),
             models.CheckConstraint(condition=~models.Q(sender=models.F('receiver')), name='invite_sender_not_receiver'),
         ]
-
-    @property
-    def is_expired(self):
-        return now() >= self.expires_at
 
     def __str__(self):
         return str(self.id)
