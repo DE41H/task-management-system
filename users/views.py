@@ -12,12 +12,12 @@ class ChangePasswordView(UpdateAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_object(self):
         return self.request.user
 
 class UserView(RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def get_object(self):
         return self.request.user

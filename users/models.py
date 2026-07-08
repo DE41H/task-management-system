@@ -7,7 +7,7 @@ from base.models import BaseModel
 class CustomUser(BaseModel, AbstractUser):
     email = models.EmailField(unique=True)
 
-    class Meta(BaseModel.Meta, AbstractUser.Meta):  # pyright: ignore[reportAttributeAccessIssue]
+    class Meta(BaseModel.Meta, AbstractUser.Meta):
         abstract = False
 
     def __str__(self):

@@ -5,8 +5,8 @@ from django.contrib.auth.password_validation import validate_password
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
 
-    class Meta:
-        model = CustomUser
+    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+        model = CustomUser  # pyright: ignore[reportIncompatibleMethodOverride]
         fields = ['email', 'username', 'password']
 
     def create(self, validated_data):
@@ -17,7 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
 class UserSerializer(serializers.ModelSerializer):
-    class Meta:
+    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = CustomUser
         fields = ['email', 'username']
 
