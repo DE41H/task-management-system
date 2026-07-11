@@ -30,7 +30,7 @@ class ProjectViewSet(ModelViewSet):
     def perform_create(self, serializer):
         team_id = self.kwargs['team_id']
         try:
-            serializer.save(team_id=team_id, created_by_id=self.request.user.pk)
+            serializer.save(team_id=team_id, creator_id=self.request.user.pk)
         except IntegrityError:
             raise ValidationError({'title': 'A project with this title already exists in this team.'})
 
