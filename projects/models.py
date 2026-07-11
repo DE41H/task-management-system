@@ -10,6 +10,7 @@ class Project(BaseModel):
     creator = models.ForeignKey(to='users.CustomUser', on_delete=models.SET_NULL, null=True)
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+        ordering = ['updated_at']
         constraints = [
             models.UniqueConstraint(fields=['team', 'title'], name='unique_project_title_per_team')
         ]
