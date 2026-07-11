@@ -24,7 +24,7 @@ class ProjectViewSet(ModelViewSet):
         if self.action == 'destroy':
             return [IsAuthenticated(), HasPermission(Scope.PROJECT_DELETE)()]
         if self.action in {'list', 'retrieve'}:
-            return [IsAuthenticated(), HasPermission(Scope.TASK_VIEW)()]
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_VIEW)()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
