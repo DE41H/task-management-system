@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from .views import ProjectViewSet
 
 urlpatterns = [
@@ -12,4 +12,5 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy',
     }), name='project'),
+    path('<uuid:project_id>/tasks/', include('tasks.urls'))
 ]
