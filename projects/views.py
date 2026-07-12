@@ -14,7 +14,7 @@ class ProjectViewSet(ModelViewSet):
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']
-        return Project.objects.filter(team_id=team_id)
+        return Project.objects.filter(team_id=team_id).order_by('-id')
 
     def get_permissions(self):
         if self.action in {'update', 'partial_update'}:
