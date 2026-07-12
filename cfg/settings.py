@@ -88,6 +88,7 @@ DATABASES = {
         'PASSWORD': env.get('POSTGRES_PASSWORD', 'password'),
         'HOST': 'localhost',
         'PORT': '5432',
+        'OPTIONS': {'pool': True}
     }
 }
 
