@@ -1,7 +1,8 @@
 from django.db import IntegrityError
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from projects.models import Project
 from .serializers import CommentSerializer, TaskSerializer
 from .models import Comment, Task
 from .permissions import IsTaskAssignee, IsCommentAuthor
@@ -14,9 +15,9 @@ class TaskViewSet(ModelViewSet):
     lookup_url_kwarg = 'task_id'
 
     def get_queryset(self):
-        project_id = self.kwargs['project_id']
         team_id = self.kwargs['team_id']
-        return Task.objects.select_related('project').prefetch_related('assignees').filter(project_id=project_id, project__team_id=team_id)
+        project_id = self.kwargs['project_id']
+        return Task.objects.prefetch_related('assignees').filter(project_id=project_id, project__team_id=team_id).order_by('-id')
 
     def get_permissions(self):
         if self.action in {'update', 'partial_update'}:
@@ -36,7 +37,10 @@ class TaskViewSet(ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
+        team_id = self.kwargs['team_id']
         project_id = self.kwargs['project_id']
+        if not Project.objects.filter(id=project_id, team_id=team_id).exists():
+            raise NotFound()
         try:
             serializer.save(project_id=project_id, creator_id=self.request.user.pk)
         except IntegrityError:
@@ -56,7 +60,7 @@ class CommentViewSet(ModelViewSet):
         team_id = self.kwargs['team_id']
         project_id = self.kwargs['project_id']
         task_id = self.kwargs['task_id']
-        return Comment.objects.select_related('task', 'task__project').filter(task_id=task_id, task__project_id=project_id, task__project__team_id=team_id)
+        return Comment.objects.filter(task_id=task_id, task__project_id=project_id, task__project__team_id=team_id).order_by('-id')
 
     def get_permissions(self):
         if self.action in {'update', 'partial_update', 'destroy'}:
@@ -67,4 +71,8 @@ class CommentViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         task_id = self.kwargs['task_id']
+        project_id = self.kwargs['project_id']
+        team_id = self.kwargs['team_id']
+        if not Task.objects.filter(id=task_id, project_id=project_id, project__team_id=team_id).exists():
+            raise NotFound()
         serializer.save(task_id=task_id, author_id=self.request.user.pk)

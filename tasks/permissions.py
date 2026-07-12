@@ -1,8 +1,11 @@
 from rest_framework.permissions import BasePermission
+from tasks.models import Task
+from teams.models import Membership
 
 class IsTaskAssignee(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        return obj.assignees.filter(pk=request.user.pk).exists()
+    def has_object_permission(self, request, view, obj: Task):
+        team_id = view.kwargs['team_id']
+        return obj.assignees.filter(id=request.user.pk).exists() and Membership.objects.filter(user_id=request.user.pk, team_id=team_id).exists()
 
 class IsCommentAuthor(BasePermission):
     def has_object_permission(self, request, view, obj):

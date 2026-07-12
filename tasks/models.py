@@ -27,9 +27,8 @@ class Task(BaseModel):
     due = models.DateTimeField(null=True, blank=True)
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
-        ordering = ['-updated_at']
         constraints = [
-            models.UniqueConstraint(fields=['title', 'project'], name='unique_task_title_per_project')
+            models.UniqueConstraint(fields=['project', 'title'], name='unique_task_title_per_project')
         ]
 
     @property
@@ -43,9 +42,6 @@ class Comment(BaseModel):
     content = models.TextField()
     author = models.ForeignKey(to='users.CustomUser', on_delete=models.SET_NULL, null=True)
     task = models.ForeignKey(to='tasks.Task', on_delete=models.CASCADE, related_name='comments')
-
-    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
-        ordering = ['-created_at']
 
     def __str__(self):
         return str(self.id)

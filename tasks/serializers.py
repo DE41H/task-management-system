@@ -14,7 +14,8 @@ class TaskSerializer(ModelSerializer):
         if not assignees:
             return assignees
         team_id = self.context['view'].kwargs['team_id']
-        if Membership.objects.filter(team_id=team_id, user__in=assignees).count() != len(set(assignees)):
+        assignee_count = Membership.objects.filter(team_id=team_id, user__in=assignees).count()
+        if assignee_count != len(set(assignees)):
             raise ValidationError('All assignees must be members of this team.')
         return assignees
 
