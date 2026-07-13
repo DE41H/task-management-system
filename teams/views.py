@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from logs.models import Log
-from .models import Invitation, InvitationStatus, Membership, Role
+from .models import Invitation, InvitationStatus, Membership, Role, Team
 from .permissions import HasPermission, IsInviteReceiver, Scope, IsSelfMembership
 from .serializers import InvitationSerializer, MembershipSerializer, TeamSerializer
 from rest_framework.filters import SearchFilter
@@ -44,12 +44,6 @@ class MembershipViewSet(ModelViewSet):
         team_id = self.kwargs['team_id']
         return Membership.objects.select_related('user').filter(team_id=team_id).order_by('-id')
 
-    def get_object(self):
-        membership: Membership = super().get_object()
-        if self.action == 'destroy' and not Membership.objects.filter(team_id=membership.team_id, role=Role.OWNER).exclude(id=membership.id).exists():  # pyright: ignore[reportAttributeAccessIssue]
-            raise ValidationError({'detail': 'There must be atleast one remaining owner.'})
-        return membership
-
     def get_permissions(self):
         if self.action == 'partial_update':
             return [IsAuthenticated(), HasPermission(Scope.TEAM_CHANGE_ROLES)()]
@@ -66,6 +60,9 @@ class MembershipViewSet(ModelViewSet):
 
     @atomic()
     def perform_destroy(self, instance):
+        Team.objects.select_for_update().get(id=instance.team_id)
+        if self.action == 'destroy' and not Membership.objects.filter(team_id=instance.team_id, role=Role.OWNER).exclude(id=instance.id).exists():  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError({'detail': 'There must be atleast one remaining owner.'})
         if instance.user_id == self.request.user.pk:
             content = f"{instance.user.username} left the team"
         else:
