@@ -7,7 +7,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
-        model = CustomUser  # pyright: ignore[reportIncompatibleMethodOverride]
+        model = CustomUser
         fields = ['email', 'username', 'password']
 
     def validate(self, attrs):
@@ -33,7 +33,7 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = CustomUser
-        fields = []
+        fields = ['old_password', 'new_password']
 
     def validate_old_password(self, old_password):
         user: CustomUser = self.context['request'].user
@@ -47,7 +47,7 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
         return new_password
 
     def validate(self, attrs):
-        if attrs.get['old_password'] is None or attrs.get['new_password'] is None:
+        if 'old_password' not in attrs or 'new_password' not in attrs:
             raise ValidationError('old_password and new_password are required.')
         return super().validate(attrs)
 
