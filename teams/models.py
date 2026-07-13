@@ -54,7 +54,7 @@ class Invitation(BaseModel):
         ]
 
     @property
-    def is_expired(self):
+    def is_expired(self) -> bool:
         return now() >= self.expiry
 
     def __str__(self):

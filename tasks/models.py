@@ -32,7 +32,7 @@ class Task(BaseModel):
         ]
 
     @property
-    def is_overdue(self):
+    def is_overdue(self) -> bool:
         return self.due is not None and self.due <= now()
 
     def __str__(self):

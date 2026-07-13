@@ -18,7 +18,6 @@ urlpatterns = [
     }), name='comments'),
     path('<uuid:task_id>/comments/<uuid:comment_id>/', CommentViewSet.as_view({
         'get': 'retrieve',
-        'put': 'update',
         'patch': 'partial_update',
         'delete': 'destroy',
     }), name='comment'),

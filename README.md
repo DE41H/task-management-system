@@ -139,7 +139,7 @@ All endpoints are versioned under `/api/v1/` and paginated (20 per page).
 | `GET` | `/teams/{team}/members/` | List memberships |
 | `GET` `PATCH` `DELETE` | `/teams/{team}/members/{membership}/` | Change role · remove · leave |
 | `GET` `POST` | `/teams/{team}/invites/` | List / send invitations (receiver addressed by email) |
-| `GET` `PATCH` `DELETE` | `/teams/{team}/invites/{invite}/` | Accept · reject · cancel |
+| `GET` `PATCH` | `/teams/{team}/invites/{invite}/` | Accept · reject · cancel |
 | `GET` | `/teams/{team}/logs/` | Team activity feed |
 
 </details>
@@ -155,7 +155,7 @@ All endpoints are versioned under `/api/v1/` and paginated (20 per page).
 | `GET` `POST` | `.../projects/{project}/tasks/` | List / create tasks — filter by `status` & `priority`, search by title, order by `created_at` / `due` |
 | `GET` `PUT` `PATCH` `DELETE` | `.../tasks/{task}/` | Manage a task |
 | `GET` `POST` | `.../tasks/{task}/comments/` | List / add comments |
-| `GET` `PUT` `PATCH` `DELETE` | `.../comments/{comment}/` | Manage a comment |
+| `GET` `PATCH` `DELETE` | `.../comments/{comment}/` | Manage a comment |
 
 </details>
 

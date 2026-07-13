@@ -8,7 +8,6 @@ from teams.permissions import HasPermission, Scope
 
 class LogViewSet(ReadOnlyModelViewSet):
     serializer_class = LogSerializer
-    lookup_url_kwarg = 'activity_id'
     permission_classes = [IsAuthenticated, HasPermission(Scope.TEAM_VIEW)]
 
     def get_queryset(self):

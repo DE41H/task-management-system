@@ -81,7 +81,7 @@ class CommentViewSet(ModelViewSet):
         return Comment.objects.filter(task_id=task_id, task__project_id=project_id, task__project__team_id=team_id).order_by('-id')
 
     def get_permissions(self):
-        if self.action in {'update', 'partial_update', 'destroy'}:
+        if self.action in {'partial_update', 'destroy'}:
             return [IsAuthenticated(), HasPermission(Scope.COMMENT)(), IsCommentAuthor()]
         if self.action in {'create', 'list', 'retrieve'}:
             return [IsAuthenticated(), HasPermission(Scope.COMMENT)()]

@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 from django.db.transaction import atomic
-from rest_framework.exceptions import MethodNotAllowed, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
@@ -28,8 +28,6 @@ class TeamViewSet(ModelViewSet):
             return [IsAuthenticated(), HasPermission(Scope.TEAM_DELETE)()]
         if self.action == 'retrieve':
             return [IsAuthenticated(), HasPermission(Scope.TEAM_VIEW)()]
-        if self.action in {'create', 'list'}:
-            return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     @atomic()
@@ -53,14 +51,12 @@ class MembershipViewSet(ModelViewSet):
         return membership
 
     def get_permissions(self):
-        if self.action in {'update', 'partial_update'}:
+        if self.action == 'partial_update':
             return [IsAuthenticated(), HasPermission(Scope.TEAM_CHANGE_ROLES)()]
         if self.action == 'destroy':
             return [IsAuthenticated(), (HasPermission(Scope.TEAM_REMOVE) | IsSelfMembership)()]
         if self.action in {'retrieve', 'list'}:
             return [IsAuthenticated(), HasPermission(Scope.TEAM_VIEW)()]
-        if self.action == 'create':
-            raise MethodNotAllowed('create')
         return [IsAuthenticated()]
 
     @atomic()
@@ -87,9 +83,9 @@ class InviteViewSet(ModelViewSet):
         return Invitation.objects.filter(team_id=team_id).order_by('-id')
 
     def get_permissions(self):
-        if self.action in {'retrieve', 'update', 'partial_update'}:
+        if self.action in {'retrieve', 'partial_update'}:
             return [IsAuthenticated(), (HasPermission(Scope.TEAM_INVITE) | IsInviteReceiver)()]
-        if self.action in {'list', 'destroy', 'create'}:
+        if self.action in {'list', 'create'}:
             return [IsAuthenticated(), HasPermission(Scope.TEAM_INVITE)()]
         return [IsAuthenticated()]
 
