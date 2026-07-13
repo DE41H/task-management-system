@@ -13,6 +13,7 @@ urlpatterns = [
         'delete': 'destroy',
     }), name='team'),
     path('<uuid:team_id>/projects/', include('projects.urls')),
+    path('<uuid:team_id>/logs/', include('logs.urls')),
     path('<uuid:team_id>/members/', MembershipViewSet.as_view({
         'get': 'list',
         'post': 'create',

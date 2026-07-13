@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'teams',
     'projects',
     'tasks',
+    'logs',
     'django_filters',
     'drf_spectacular',
 ]
