@@ -31,6 +31,7 @@ class MembershipSerializer(serializers.ModelSerializer):
 
 class InvitationSerializer(serializers.ModelSerializer):
     is_expired = serializers.ReadOnlyField()
+    receiver = serializers.SlugRelatedField(slug_field='email', queryset=CustomUser.objects.all())
 
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = Invitation
