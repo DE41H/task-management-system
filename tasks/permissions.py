@@ -1,5 +1,7 @@
 from rest_framework.permissions import BasePermission
+
 from tasks.models import Task
+
 
 class IsTaskAssignee(BasePermission):
     def has_object_permission(self, request, view, obj: Task):

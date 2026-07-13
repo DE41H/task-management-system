@@ -1,9 +1,14 @@
+from django.contrib.auth.password_validation import validate_password
 from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
+
 from .models import CustomUser
-from django.contrib.auth.password_validation import validate_password
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)

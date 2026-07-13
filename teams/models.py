@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django.db import models
 from django.utils.timezone import now
-from datetime import timedelta
+
 from base.models import BaseModel
 
 # Create your models here.

@@ -4,6 +4,7 @@ from users.serializers import UserSerializer
 
 from .models import Log
 
+
 class LogSerializer(ModelSerializer):
     user = UserSerializer(read_only=True)
 

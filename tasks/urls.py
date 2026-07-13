@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import TaskViewSet, CommentViewSet
+
+from .views import CommentViewSet, TaskViewSet
 
 urlpatterns = [
     path('', TaskViewSet.as_view({

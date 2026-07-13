@@ -1,6 +1,9 @@
 from rest_framework.serializers import ModelSerializer, ReadOnlyField, ValidationError
+
 from teams.models import Membership
-from .models import Task, Comment
+
+from .models import Comment, Task
+
 
 class TaskSerializer(ModelSerializer):
     is_overdue = ReadOnlyField()

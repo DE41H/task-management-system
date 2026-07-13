@@ -1,5 +1,6 @@
 from django.contrib.admin.decorators import register
 from django.contrib.auth.admin import UserAdmin
+
 from .models import CustomUser
 
 # Register your models here.

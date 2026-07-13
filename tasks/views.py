@@ -1,16 +1,18 @@
 from django.db import IntegrityError
-from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
-from projects.models import Project
 from django.db.transaction import atomic
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+
 from logs.models import Log
-from .serializers import CommentSerializer, TaskSerializer
-from .models import Comment, Task
-from .permissions import IsTaskAssignee, IsCommentAuthor
+from projects.models import Project
 from teams.permissions import HasPermission, Scope
+
+from .models import Comment, Task
+from .permissions import IsCommentAuthor, IsTaskAssignee
+from .serializers import CommentSerializer, TaskSerializer
 
 # Create your views here.
 

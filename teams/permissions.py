@@ -1,5 +1,7 @@
 from rest_framework.permissions import BasePermission
+
 from .models import Membership, Role
+
 
 class Scope:
     TEAM_VIEW = 'team:view'

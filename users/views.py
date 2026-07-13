@@ -1,8 +1,14 @@
-from rest_framework.generics import CreateAPIView, ListAPIView, UpdateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import (
+    CreateAPIView,
+    ListAPIView,
+    RetrieveUpdateAPIView,
+    UpdateAPIView,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from teams.serializers import InvitationSerializer
-from .serializers import RegisterSerializer, ChangePasswordSerializer, UserSerializer
+
+from .serializers import ChangePasswordSerializer, RegisterSerializer, UserSerializer
 
 # Create your views here.
 

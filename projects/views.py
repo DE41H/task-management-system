@@ -1,13 +1,15 @@
 from django.db import IntegrityError
 from django.db.transaction import atomic
 from rest_framework.exceptions import ValidationError
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+
 from logs.models import Log
+from teams.permissions import HasPermission, Scope
+
 from .models import Project
 from .serializers import ProjectSerializer
-from teams.permissions import HasPermission, Scope
 
 # Create your views here.
 

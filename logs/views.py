@@ -1,8 +1,10 @@
-from rest_framework.viewsets import ReadOnlyModelViewSet
-from .serializers import LogSerializer
-from .models import Log
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ReadOnlyModelViewSet
+
 from teams.permissions import HasPermission, Scope
+
+from .models import Log
+from .serializers import LogSerializer
 
 # Create your views here.
 

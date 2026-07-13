@@ -1,5 +1,6 @@
 from django.urls import include, path
-from .views import TeamViewSet, MembershipViewSet, InviteViewSet
+
+from .views import InviteViewSet, MembershipViewSet, TeamViewSet
 
 urlpatterns = [
     path('', TeamViewSet.as_view({
