@@ -25,17 +25,18 @@ SCOPES[Role.MAINTAINER] = {*SCOPES[Role.MEMBER], Scope.TEAM_INVITE, Scope.PROJEC
 SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES, Scope.TEAM_UPDATE, Scope.TEAM_DELETE, Scope.TEAM_REMOVE}
 
 def HasPermission(*scopes):
+    def get_membership(request, team_id):
+        if not hasattr(request, '_membership'):
+            setattr(request, '_membership', Membership.objects.filter(user=request.user, team_id=team_id,).only('role').first())
+        return getattr(request, '_membership')
+
     class _HasPermission(BasePermission):
         def has_permission(self, request, view):  # pyright: ignore[reportIncompatibleMethodOverride]
             team_id = view.kwargs.get('team_id')
             if not team_id:
                 return False
-            try:
-                membership = Membership.objects.get(user=request.user, team_id=team_id)
-                role = membership.role
-            except Membership.DoesNotExist:
-                return False
-            allowed_scopes = SCOPES[role]
+            membership = get_membership(request, team_id)
+            allowed_scopes = SCOPES[membership.role]
             return allowed_scopes.issuperset(scopes)
     return _HasPermission
 
