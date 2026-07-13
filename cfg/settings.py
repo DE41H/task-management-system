@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'projects',
     'tasks',
     'django_filters',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -148,7 +149,16 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '60/minute',
         'user': '120/minute',
-    }
+    },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Task Management API',
+    'DESCRIPTION': 'Internal Task Management API.',
+    'VERSION': '1.0.0',
+    'API_VERSION_IN_PATH': True,
+    'SERVE_INCLUDE_SCHEMA': False
 }
 
 SIMPLE_JWT = {
