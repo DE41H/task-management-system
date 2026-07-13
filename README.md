@@ -250,10 +250,8 @@ The stack provides:
 
 ## Roadmap
 
-- Automated test suite covering the permission matrix and invitation lifecycle
-- Background email notifications for invitations
 - Row-level locking for concurrent membership changes
-- Request-scoped transactions (`ATOMIC_REQUESTS`) to consolidate the per-view wrappers
+- Background email notifications for invitations
 
 ---
 

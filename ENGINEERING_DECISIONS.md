@@ -192,12 +192,10 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 ## Looking ahead
 
-A few refinements are queued behind the current milestone, in rough priority order:
+A few refinements are queued behind the current milestone:
 
-1. **Test suite** — permission-matrix and invitation-lifecycle coverage first; both are tabular and high-value.
-2. **Row-level locking** — `select_for_update` on the team row to serialize concurrent membership changes under the last-owner invariant.
-3. **Invite delivery** — background email notifications for newly created invitations.
-4. **Transaction consolidation** — evaluate `ATOMIC_REQUESTS` as the successor to per-view wrappers.
+1. **Row-level locking** — `select_for_update` on the team row to serialize concurrent membership changes under the last-owner invariant.
+2. **Invite delivery** — background email notifications for newly created invitations.
 
 ---
 
