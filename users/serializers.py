@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import CustomUser
 from django.contrib.auth.password_validation import validate_password
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, min_length=8, write_only=True)
@@ -58,4 +59,6 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
     def update(self, instance: CustomUser, validated_data):
         instance.set_password(validated_data['new_password'])
         instance.save()
+        tokens = [BlacklistedToken(token=token) for token in OutstandingToken.objects.filter(user=instance)]
+        BlacklistedToken.objects.bulk_create(tokens, ignore_conflicts=True)
         return instance
