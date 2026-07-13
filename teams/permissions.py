@@ -38,3 +38,11 @@ def HasPermission(*scopes):
             allowed_scopes = SCOPES[role]
             return allowed_scopes.issuperset(scopes)
     return _HasPermission
+
+class IsSelfMembership(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user_id == request.user.pk
+
+class IsInviteReceiver(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.receiver_id == request.user.pk

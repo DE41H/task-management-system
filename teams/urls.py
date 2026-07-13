@@ -1,22 +1,36 @@
-from django.urls import path
-from .views import (
-    TeamsView, TeamView, TeamUpdateView, TeamDeleteView, TeamLeaveView,
-    InviteListView, InviteAcceptView, InviteCancelView, InviteRejectView,
-    MembershipListView, MembershipUpdateView, MembershipDeleteView, MembershipView,
-)
+from django.urls import include, path
+from .views import TeamViewSet, MembershipViewSet, InviteViewSet
 
 urlpatterns = [
-    path('', TeamsView.as_view(), name='teams'),
-    path('<uuid:team_id>/', TeamView.as_view(), name='team'),
-    path('<uuid:team_id>/update/', TeamUpdateView.as_view(), name='team_update'),
-    path('<uuid:team_id>/delete/', TeamDeleteView.as_view(), name='team_delete'),
-    path('<uuid:team_id>/leave/', TeamLeaveView.as_view(), name='team_leave'),
-    path('<uuid:team_id>/invites/', InviteListView.as_view(), name='team_invites'),
-    path('<uuid:team_id>/members/', MembershipListView.as_view(), name='team_memberships'),
-    path('<uuid:team_id>/members/<uuid:membership_id>/', MembershipView.as_view(), name='membership'),
-    path('<uuid:team_id>/members/<uuid:membership_id>/update/', MembershipUpdateView.as_view(), name='membership_update'),
-    path('<uuid:team_id>/members/<uuid:membership_id>/remove/', MembershipDeleteView.as_view(), name='membership_delete'),
-    path('invites/<uuid:invite_id>/accept/', InviteAcceptView.as_view(), name='invite_accept'),
-    path('invites/<uuid:invite_id>/cancel/', InviteCancelView.as_view(), name='invite_cancel'),
-    path('invites/<uuid:invite_id>/reject/', InviteRejectView.as_view(), name='invite_reject'),
+    path('', TeamViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+    }), name='teams'),
+    path('<uuid:team_id>/', TeamViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy',
+    }), name='team'),
+    path('<uuid:team_id>/projects/', include('projects.urls')),
+    path('<uuid:team_id>/members/', MembershipViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+    }), name='members'),
+    path('<uuid:team_id>/members/<uuid:membership_id>/', MembershipViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy',
+    }), name='member'),
+    path('<uuid:team_id>/invites/', InviteViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+    }), name='invites'),
+    path('<uuid:team_id>/invites/<uuid:invite_id>/', InviteViewSet.as_view({
+        'get': 'retrieve',
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy',
+    }), name='invite'),
 ]
