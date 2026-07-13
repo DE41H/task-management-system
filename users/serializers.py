@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from .models import CustomUser
@@ -16,11 +17,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def create(self, validated_data):
-        return CustomUser.objects.create_user(
-            email=validated_data['email'],
-            username=validated_data['username'],
-            password=validated_data['password'],
-        )
+        try:
+            return CustomUser.objects.create_user(
+                email=validated_data['email'],
+                username=validated_data['username'],
+                password=validated_data['password'],
+            )
+        except IntegrityError:
+            raise ValidationError({'email': 'A user with this email or username already exists.'})
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
