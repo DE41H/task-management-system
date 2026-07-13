@@ -157,7 +157,6 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Task Management API',
     'DESCRIPTION': 'Internal Task Management API.',
     'VERSION': '1.0.0',
-    'API_VERSION_IN_PATH': True,
     'SERVE_INCLUDE_SCHEMA': False
 }
 
