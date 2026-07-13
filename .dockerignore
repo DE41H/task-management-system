@@ -2,6 +2,13 @@
 .venv/
 docs/
 docker/
+!docker/entrypoint.sh
+nginx/
+.env
 .env.*
 *.md
 .gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+staticfiles/
