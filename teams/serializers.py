@@ -25,7 +25,7 @@ class MembershipSerializer(serializers.ModelSerializer):
             raise PermissionDenied('Cannot change your own role.')
         if validated_data.get('role') == instance.role:
             raise ValidationError({'role': 'Role must change.'})
-        if instance.role == Role.OWNER and not Membership.objects.filter(team_id=team_id, role=Role.OWNER).exclude(user_id=user_id).exists():
+        if instance.role == Role.OWNER and not Membership.objects.filter(team_id=team_id, role=Role.OWNER).exclude(id=instance.id).exists():
             raise ValidationError({'role': 'There must be atleast one Owner.'})
         return super().update(instance, validated_data)
 
@@ -49,6 +49,10 @@ class InvitationSerializer(serializers.ModelSerializer):
         if role == Role.OWNER and Membership.objects.filter(user_id=user_id, team_id=team_id, role=Role.MAINTAINER).exists():
             raise serializers.ValidationError({'role': 'Cannot Invite Owner as a Maintainer.'})
         return role
+
+    def create(self, validated_data):
+        validated_data['status'] = InvitationStatus.PENDING
+        return super().create(validated_data)
 
     def update(self, instance: Invitation, validated_data):
         validated_data.pop('receiver', None)

@@ -19,7 +19,7 @@ class TeamViewSet(ModelViewSet):
     search_fields = ['name']
 
     def get_queryset(self):
-        return self.request.user.teams.prefetch_related('members').all()  # pyright: ignore[reportAttributeAccessIssue]
+        return self.request.user.teams.prefetch_related('members').order_by('-id').all()  # pyright: ignore[reportAttributeAccessIssue]
 
     def get_permissions(self):
         if self.action in {'update', 'partial_update'}:
@@ -44,7 +44,7 @@ class MembershipViewSet(ModelViewSet):
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']
-        return Membership.objects.select_related('user').filter(team_id=team_id)
+        return Membership.objects.select_related('user').filter(team_id=team_id).order_by('-id')
 
     def get_object(self):
         membership: Membership = super().get_object()
@@ -84,12 +84,12 @@ class InviteViewSet(ModelViewSet):
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']
-        return Invitation.objects.filter(team_id=team_id)
+        return Invitation.objects.filter(team_id=team_id).order_by('-id')
 
     def get_permissions(self):
         if self.action in {'retrieve', 'update', 'partial_update'}:
             return [IsAuthenticated(), (HasPermission(Scope.TEAM_INVITE) | IsInviteReceiver)()]
-        if self.action in {'retrieve', 'list', 'destroy', 'create'}:
+        if self.action in {'list', 'destroy', 'create'}:
             return [IsAuthenticated(), HasPermission(Scope.TEAM_INVITE)()]
         return [IsAuthenticated()]
 
