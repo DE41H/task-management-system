@@ -3,6 +3,8 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from projects.models import Project
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from .serializers import CommentSerializer, TaskSerializer
 from .models import Comment, Task
 from .permissions import IsTaskAssignee, IsCommentAuthor
@@ -13,6 +15,10 @@ from teams.permissions import HasPermission, Scope
 class TaskViewSet(ModelViewSet):
     serializer_class = TaskSerializer
     lookup_url_kwarg = 'task_id'
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'priority']
+    search_fields = ['title']
+    ordering_fields = ['created_at', 'due']
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']

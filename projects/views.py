@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter
 from .models import Project
 from .serializers import ProjectSerializer
 from teams.permissions import HasPermission, Scope
@@ -11,6 +12,8 @@ from teams.permissions import HasPermission, Scope
 class ProjectViewSet(ModelViewSet):
     serializer_class = ProjectSerializer
     lookup_url_kwarg = 'project_id'
+    filter_backends = [SearchFilter]
+    search_fields = ['title']
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']

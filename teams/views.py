@@ -1,3 +1,88 @@
-from django.shortcuts import render
+from django.db.transaction import atomic
+from rest_framework.exceptions import MethodNotAllowed, ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
+
+from .models import Invitation, InvitationStatus, Membership, Role
+from .permissions import HasPermission, IsInviteReceiver, Scope, IsSelfMembership
+from .serializers import InvitationSerializer, MembershipSerializer, TeamSerializer
+from rest_framework.filters import SearchFilter
 
 # Create your views here.
+
+class TeamViewSet(ModelViewSet):
+    serializer_class = TeamSerializer
+    lookup_url_kwarg = 'team_id'
+    filter_backends = [SearchFilter]
+    search_filters = ['name']
+
+    def get_queryset(self):
+        return self.request.user.teams.all()  # pyright: ignore[reportAttributeAccessIssue]
+
+    def get_permissions(self):
+        if self.action in {'update', 'partial_update'}:
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_UPDATE)()]
+        if self.action == 'destroy':
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_DELETE)()]
+        if self.action == 'retrieve':
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_VIEW)()]
+        if self.action in {'create', 'list'}:
+            return [IsAuthenticated()]
+        return [IsAuthenticated()]
+
+    @atomic()
+    def perform_create(self, serializer):
+        team = serializer.save()
+        Membership.objects.create(user_id=self.request.user.pk, team_id=team.id, role=Role.OWNER)
+
+class MembershipViewSet(ModelViewSet):
+    serializer_class = MembershipSerializer
+    lookup_url_kwarg = 'membership_id'
+
+    def get_queryset(self):
+        team_id = self.kwargs['team_id']
+        return Membership.objects.filter(team_id=team_id)
+
+    def get_object(self):
+        membership: Membership = super().get_object()
+        if self.action == 'destroy' and not Membership.objects.filter(team_id=membership.team_id, role=Role.OWNER).exclude(id=membership.id).exists():  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError({'detail': 'There must be atleast one remaining owner.'})
+        return membership
+
+    def get_permissions(self):
+        if self.action in {'update', 'partial_update'}:
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_CHANGE_ROLES)()]
+        if self.action == 'destroy':
+            return [IsAuthenticated(), (HasPermission(Scope.TEAM_REMOVE) | IsSelfMembership)()]
+        if self.action in {'retrieve', 'list'}:
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_VIEW)()]
+        if self.action == 'create':
+            raise MethodNotAllowed('create')
+        return [IsAuthenticated()]
+
+class InviteViewSet(ModelViewSet):
+    serializer_class = InvitationSerializer
+    lookup_url_kwarg = 'invite_id'
+
+    def get_queryset(self):
+        team_id = self.kwargs['team_id']
+        return Invitation.objects.filter(team_id=team_id)
+
+    def get_permissions(self):
+        if self.action in {'retrieve', 'update', 'partial_update'}:
+            return [IsAuthenticated(), (HasPermission(Scope.TEAM_INVITE) | IsInviteReceiver)()]
+        if self.action in {'retrieve', 'list', 'destroy', 'create'}:
+            return [IsAuthenticated(), HasPermission(Scope.TEAM_INVITE)()]
+        return [IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        # TODO: Background email sending
+        team_id = self.kwargs['team_id']
+        serializer.save(team_id=team_id, sender_id=self.request.user.pk)
+
+    @atomic()
+    def perform_update(self, serializer):
+        team_id = self.kwargs['team_id']
+        invite = serializer.save()
+        if invite.status == InvitationStatus.ACCEPTED:
+            Membership.objects.create(team_id=team_id, user_id=self.request.user.pk, role=invite.role)
