@@ -27,7 +27,7 @@ SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES, Scope.T
 def HasPermission(*scopes):
     def get_membership(request, team_id):
         if not hasattr(request, '_membership'):
-            setattr(request, '_membership', Membership.objects.filter(user=request.user, team_id=team_id,).only('role').first())
+            setattr(request, '_membership', Membership.objects.filter(user=request.user, team_id=team_id).only('role').first())
         return getattr(request, '_membership')
 
     class _HasPermission(BasePermission):
@@ -36,8 +36,9 @@ def HasPermission(*scopes):
             if not team_id:
                 return False
             membership = get_membership(request, team_id)
-            allowed_scopes = SCOPES[membership.role]
-            return allowed_scopes.issuperset(scopes)
+            if membership is None:
+                return False
+            return SCOPES[membership.role].issuperset(scopes)
     return _HasPermission
 
 class IsSelfMembership(BasePermission):
