@@ -52,6 +52,9 @@ class Invitation(BaseModel):
         constraints = [
             models.CheckConstraint(condition=~models.Q(sender=models.F('receiver')), name='invite_sender_is_not_receiver'),
         ]
+        indexes = [
+            models.Index(fields=['receiver', '-id'])
+        ]
 
     @property
     def is_expired(self) -> bool:
