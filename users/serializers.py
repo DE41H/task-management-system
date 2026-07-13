@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from .models import CustomUser
 from django.contrib.auth.password_validation import validate_password
 
@@ -8,6 +9,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = CustomUser  # pyright: ignore[reportIncompatibleMethodOverride]
         fields = ['email', 'username', 'password']
+
+    def validate(self, attrs):
+        user = CustomUser(username=attrs['username'], email=attrs['email'])
+        validate_password(attrs['password'], user=user)
+        return super().validate(attrs)
 
     def create(self, validated_data):
         return CustomUser.objects.create_user(
@@ -19,16 +25,30 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = CustomUser
-        fields = ['email', 'username']
+        fields = ['id', 'username', 'email', 'created_at', 'updated_at']
 
-class ChangePasswordSerializer(serializers.Serializer):
-    new_password = serializers.CharField(max_length=128, min_length=8, write_only=True, required=True, validators=[validate_password])
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    new_password = serializers.CharField(max_length=128, min_length=8, write_only=True, required=True)
     old_password = serializers.CharField(max_length=128, min_length=8, write_only=True, required=True)
 
-    def validate(self, attrs):
+    class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
+        model = CustomUser
+        fields = []
+
+    def validate_old_password(self, old_password):
         user: CustomUser = self.context['request'].user
-        if not user.check_password(attrs['old_password']):
-            raise serializers.ValidationError({'old_password': 'password is incorrect'})
+        if not user.check_password(old_password):
+            raise ValidationError('Password is incorrect.')
+        return old_password
+
+    def validate_new_password(self, new_password):
+        user: CustomUser = self.context['request'].user
+        validate_password(password=new_password, user=user)
+        return new_password
+
+    def validate(self, attrs):
+        if attrs.get['old_password'] is None or attrs.get['new_password'] is None:
+            raise ValidationError('old_password and new_password are required.')
         return super().validate(attrs)
 
     def update(self, instance: CustomUser, validated_data):

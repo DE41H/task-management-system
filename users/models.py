@@ -4,11 +4,8 @@ from base.models import BaseModel
 
 # Create your models here.
 
-class CustomUser(BaseModel, AbstractUser):
+class CustomUser(AbstractUser, BaseModel):  # pyright: ignore[reportIncompatibleVariableOverride]
     email = models.EmailField(unique=True)
-
-    class Meta(BaseModel.Meta, AbstractUser.Meta):
-        abstract = False
 
     def __str__(self):
         return str(self.id)
