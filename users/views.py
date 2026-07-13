@@ -29,4 +29,4 @@ class UserInvitesView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return self.request.user.invites.order_by('-id').all()  # pyright: ignore[reportAttributeAccessIssue]
+        return self.request.user.invites_received.select_related('team').order_by('-id').all()  # pyright: ignore[reportAttributeAccessIssue]
