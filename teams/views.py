@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.db.transaction import atomic
 from rest_framework.exceptions import MethodNotAllowed, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -14,10 +15,10 @@ class TeamViewSet(ModelViewSet):
     serializer_class = TeamSerializer
     lookup_url_kwarg = 'team_id'
     filter_backends = [SearchFilter]
-    search_filters = ['name']
+    search_fields = ['name']
 
     def get_queryset(self):
-        return self.request.user.teams.all()  # pyright: ignore[reportAttributeAccessIssue]
+        return self.request.user.teams.prefetch_related('members').all()  # pyright: ignore[reportAttributeAccessIssue]
 
     def get_permissions(self):
         if self.action in {'update', 'partial_update'}:
@@ -41,7 +42,7 @@ class MembershipViewSet(ModelViewSet):
 
     def get_queryset(self):
         team_id = self.kwargs['team_id']
-        return Membership.objects.filter(team_id=team_id)
+        return Membership.objects.select_related('user').filter(team_id=team_id)
 
     def get_object(self):
         membership: Membership = super().get_object()
@@ -80,9 +81,12 @@ class InviteViewSet(ModelViewSet):
         team_id = self.kwargs['team_id']
         serializer.save(team_id=team_id, sender_id=self.request.user.pk)
 
-    @atomic()
     def perform_update(self, serializer):
         team_id = self.kwargs['team_id']
-        invite = serializer.save()
-        if invite.status == InvitationStatus.ACCEPTED:
-            Membership.objects.create(team_id=team_id, user_id=self.request.user.pk, role=invite.role)
+        try:
+            with atomic():
+                invite = serializer.save()
+                if invite.status == InvitationStatus.ACCEPTED:
+                    Membership.objects.create(team_id=team_id, user_id=self.request.user.pk, role=invite.role)
+        except IntegrityError:
+            raise ValidationError({'receiver': 'User is already a member of the Team.'})
