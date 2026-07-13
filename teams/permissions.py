@@ -26,9 +26,10 @@ SCOPES[Role.OWNER] = {*SCOPES[Role.MAINTAINER], Scope.TEAM_CHANGE_ROLES, Scope.T
 
 def HasPermission(*scopes):
     def get_membership(request, team_id):
-        if not hasattr(request, '_membership'):
-            setattr(request, '_membership', Membership.objects.filter(user=request.user, team_id=team_id).only('role').first())
-        return getattr(request, '_membership')
+        varname = f'_membership_{team_id}'
+        if not hasattr(request, varname):
+            setattr(request, varname, Membership.objects.filter(user=request.user, team_id=team_id).only('role').first())
+        return getattr(request, varname)
 
     class _HasPermission(BasePermission):
         def has_permission(self, request, view):  # pyright: ignore[reportIncompatibleMethodOverride]
