@@ -35,9 +35,9 @@ A multi-tenant REST API for teams, projects, tasks, and activity tracking — bu
 | | |
 |---|---|
 | **Multi-tenant teams** | Every resource lives under a team; querysets are scoped through the URL hierarchy, so cross-tenant access resolves to a 404 at the ORM level |
-| **JWT authentication** | Short-lived access tokens (15 min) with rotating refresh tokens and blacklist-on-rotation |
+| **JWT authentication** | Short-lived access tokens (15 min) with rotating refresh tokens, blacklist-on-rotation, and full token revocation on password change |
 | **Role-based access control** | Four roles (`owner` → `maintainer` → `member` → `viewer`) mapped to fine-grained scopes such as `task:assign` and `team:invite` |
-| **Invitation workflow** | Expiring invites with an explicit state machine (`pending → accepted / rejected / cancelled`); membership is created atomically on accept |
+| **Invitation workflow** | Email-addressed invites with an explicit state machine (`pending → accepted / rejected / cancelled`), a per-user inbox, and 3-day expiry; membership is created atomically on accept |
 | **Projects, tasks & comments** | Nested resources with status, priority, due dates, multi-assignee support, filtering, search, and ordering |
 | **Activity logs** | An append-only, per-team audit feed recorded transactionally alongside every mutation |
 | **Database-enforced invariants** | Unique and check constraints back every application-level rule |
@@ -123,7 +123,8 @@ All endpoints are versioned under `/api/v1/` and paginated (20 per page).
 | `POST` | `/auth/refresh/` | Rotate the refresh token |
 | `POST` | `/auth/logout/` | Blacklist the refresh token |
 | `GET` `PATCH` | `/auth/me/` | Retrieve / update the current user |
-| `PUT` `PATCH` | `/auth/password/` | Change password |
+| `GET` | `/auth/invites/` | Invitations addressed to the current user |
+| `PUT` `PATCH` | `/auth/password/` | Change password (revokes outstanding refresh tokens) |
 
 </details>
 
@@ -137,7 +138,7 @@ All endpoints are versioned under `/api/v1/` and paginated (20 per page).
 | `GET` `PUT` `PATCH` `DELETE` | `/teams/{team}/` | Manage a team |
 | `GET` | `/teams/{team}/members/` | List memberships |
 | `GET` `PATCH` `DELETE` | `/teams/{team}/members/{membership}/` | Change role · remove · leave |
-| `GET` `POST` | `/teams/{team}/invites/` | List / send invitations |
+| `GET` `POST` | `/teams/{team}/invites/` | List / send invitations (receiver addressed by email) |
 | `GET` `PATCH` `DELETE` | `/teams/{team}/invites/{invite}/` | Accept · reject · cancel |
 | `GET` | `/teams/{team}/logs/` | Team activity feed |
 
@@ -250,7 +251,7 @@ The stack provides:
 ## Roadmap
 
 - Automated test suite covering the permission matrix and invitation lifecycle
-- Email notifications for invitations, with a receiver-facing invite inbox
+- Background email notifications for invitations
 - Row-level locking for concurrent membership changes
 - Request-scoped transactions (`ATOMIC_REQUESTS`) to consolidate the per-view wrappers
 

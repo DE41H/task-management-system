@@ -92,9 +92,10 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 **Context.** Joining a team requires consent from both sides: a privileged member offers, the receiver decides. Directly creating memberships would put that whole negotiation on one actor.
 
-**Decision.** An `Invitation` model with a four-state lifecycle — `pending → accepted | rejected | cancelled` — plus a 3-day default expiry. Invitations are always born `pending`; serializer rules enforce the transitions: only pending, unexpired invites may change state; only the **receiver** may accept or reject; invite-scoped members may cancel. On accept, the membership is created **in the same transaction** as the status change, with the unique membership constraint (ADR-04) as the concurrency backstop.
+**Decision.** An `Invitation` model with a four-state lifecycle — `pending → accepted | rejected | cancelled` — plus a 3-day default expiry. Receivers are addressed by **email** (a `SlugRelatedField` resolves the address to a user at the API boundary, while the database keeps a plain foreign key), and each user has an inbox of invitations addressed to them at `/auth/invites/`. Invitations are always born `pending`; serializer rules enforce the transitions: only pending, unexpired invites may change state; only the **receiver** may accept or reject; invite-scoped members may cancel. On accept, the membership is created **in the same transaction** as the status change, with the unique membership constraint (ADR-04) as the concurrency backstop.
 
 **Consequences.**
+- Inviting works the way people think — "invite this email" — with no client-side user-ID lookup step, and a miss resolves to a clean field-level `400`.
 - Double-accepts and accept-after-join collapse into a clean `400` via the constraint — never a duplicate membership.
 - Expiry is evaluated at read time (`is_expired` property) — no cron job needed to sweep stale invites.
 - Role escalation is bounded: maintainers cannot mint owners.
@@ -119,11 +120,11 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 **Context.** The API serves programmatic clients and a future SPA; session cookies would drag CSRF concerns into every client.
 
-**Decision.** `djangorestframework-simplejwt` with deliberately tight settings: **15-minute access tokens**, 1-day refresh tokens, `ROTATE_REFRESH_TOKENS` + `BLACKLIST_AFTER_ROTATION` so every refresh invalidates its predecessor. Logout blacklists the refresh token.
+**Decision.** `djangorestframework-simplejwt` with deliberately tight settings: **15-minute access tokens**, 1-day refresh tokens, `ROTATE_REFRESH_TOKENS` + `BLACKLIST_AFTER_ROTATION` so every refresh invalidates its predecessor. Logout blacklists the refresh token, and a **password change blacklists every outstanding refresh token** for the user, ending all other sessions.
 
 **Consequences.**
-- A leaked access token is useful for at most 15 minutes; a leaked refresh token dies on first legitimate rotation.
-- Stateless verification keeps auth off the database for every request — only refresh and logout touch the blacklist table.
+- A leaked access token is useful for at most 15 minutes; a leaked refresh token dies on first legitimate rotation — or immediately, on the next password change.
+- Stateless verification keeps auth off the database for every request — only refresh, logout, and password change touch the blacklist table.
 - Any credential or membership change takes full effect within the 15-minute access window.
 
 ---
@@ -195,7 +196,7 @@ A few refinements are queued behind the current milestone, in rough priority ord
 
 1. **Test suite** — permission-matrix and invitation-lifecycle coverage first; both are tabular and high-value.
 2. **Row-level locking** — `select_for_update` on the team row to serialize concurrent membership changes under the last-owner invariant.
-3. **Invite delivery** — background email notifications and a receiver-facing invite inbox.
+3. **Invite delivery** — background email notifications for newly created invitations.
 4. **Transaction consolidation** — evaluate `ATOMIC_REQUESTS` as the successor to per-view wrappers.
 
 ---
