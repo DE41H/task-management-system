@@ -86,8 +86,8 @@ DATABASES = {
         'NAME': env.get('POSTGRES_DB', 'name'),
         'USER': env.get('POSTGRES_USER', 'username'),
         'PASSWORD': env.get('POSTGRES_PASSWORD', 'password'),
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'HOST': env.get('POSTGRES_HOST', 'host'),
+        'PORT': env.get('POSTGRES_PORT', 'port'),
         'OPTIONS': {'pool': True}
     }
 }
@@ -134,7 +134,7 @@ STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_simplejwt.authentication.JWTAuthentication'],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.CursorPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
     'DEFAULT_VERSION': 'v1',
