@@ -1,0 +1,62 @@
+name: tms-prod
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: ../.env.prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput &&
+      exec gunicorn cfg.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -"
+    env_file: ../.env.prod
+    expose:
+      - "8000"
+    volumes:
+      - static:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ../nginx/nginx.prod.conf:/etc/nginx/templates/default.conf.template:ro
+      - static:/static:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  static:

@@ -2,7 +2,6 @@
 .venv/
 docs/
 docker/
-!docker/entrypoint.sh
 nginx/
 .env
 .env.*
