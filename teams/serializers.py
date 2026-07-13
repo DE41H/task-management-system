@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from users.models import CustomUser
+from users.serializers import UserSerializer
 from .models import Invitation, InvitationStatus, Membership, Role, Team
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -10,6 +11,8 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class MembershipSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = Membership
         fields = '__all__'
