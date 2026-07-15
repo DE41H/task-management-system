@@ -57,5 +57,37 @@ services:
     depends_on:
       - backend
 
+  celery_worker:
+      build:
+        context: ..
+        dockerfile: docker/Dockerfile
+      restart: unless-stopped
+      command: celery -A cfg worker --loglevel=info
+      volumes:
+        - ..:/app
+      env_file:
+        - ../env.dev
+      depends_on:
+        db:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+
+  celery_beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: celery -A cfg beat --loglevel=info
+    volumes:
+      - ..:/app
+    env_file:
+      - ../env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:

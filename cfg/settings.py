@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'logs',
     'django_filters',
     'drf_spectacular',
+    'django_celery_beat',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -187,3 +189,18 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+CELERY_BROKER_URL = env.get('REDIS_URL', 'url')
+CELERY_RESULT_BACKEND = env.get('REDIS_URL', 'url')
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_ACCEPT_CONTENT = ['msgpack', 'json']
+CELERY_TASK_SERIALIZER = 'msgpack'
+CELERY_RESULT_SERIALIZER = 'msgpack'
+CELERY_TIMEZONE = 'Asia/Kolkata'
+
+EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+ANYMAIL = {'RESEND_API_KEY': env.get('RESEND_API_KEY', 'resend-api-key')}
+DEFAULT_FROM_EMAIL = env.get('DEFAULT_FROM_EMAIL', 'email-id@gmail.com')

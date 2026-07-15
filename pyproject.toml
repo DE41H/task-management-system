@@ -5,12 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "celery>=5.6.3",
     "django>=6.0.6",
+    "django-anymail[resend]>=15.0",
+    "django-celery-beat>=2.9.0",
     "django-filter>=26.1",
     "djangorestframework>=3.17.1",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.30.0",
     "gunicorn>=26.0.0",
+    "msgpack>=1.2.1",
     "psycopg[binary,pool]>=3.3.4",
     "redis>=8.0.1",
     "uuid6>=2025.0.1",
