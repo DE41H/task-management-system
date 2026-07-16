@@ -1,5 +1,5 @@
 from django.db import IntegrityError
-from django.db.transaction import atomic
+from django.db.transaction import atomic, on_commit
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -13,6 +13,7 @@ from teams.permissions import HasPermission, Scope
 from .models import Comment, Task
 from .permissions import IsCommentAuthor, IsTaskAssignee
 from .serializers import CommentSerializer, TaskSerializer
+from .tasks import notify_task_assigned, notify_task_status_changed
 
 # Create your views here.
 
@@ -56,14 +57,24 @@ class TaskViewSet(ModelViewSet):
             task = serializer.save(project_id=project_id, creator_id=self.request.user.pk)
         except IntegrityError:
             raise ValidationError({'title': 'A Task with this title already exists in this Project.'})
+        assignee_ids = [str(id) for id in task.assignees.values_list('id', flat=True)]
+        if assignee_ids:
+            on_commit(lambda: notify_task_assigned.delay(str(task.id), assignee_ids))  # pyright: ignore[reportCallIssue]
         Log.record(team_id, self.request.user, f"{self.request.user.username} created task '{task.title}'")  # pyright: ignore[reportAttributeAccessIssue]
 
     @atomic()
     def perform_update(self, serializer):
+        old_status = serializer.instance.status  # pyright: ignore[reportOptionalMemberAccess]
+        old_assignee_ids = set(serializer.instance.assignees.values_list('id', flat=True)) if 'assignees' in serializer.validated_data else None  # pyright: ignore[reportOptionalMemberAccess]
+        added_ids = [str(user.id) for user in serializer.validated_data.get('assignees', []) if user.id not in old_assignee_ids]
         try:
             task = serializer.save()
         except IntegrityError:
             raise ValidationError({'title': 'A Task with this title already exists in this Project.'})
+        if old_assignee_ids is not None and added_ids:
+            on_commit(lambda: notify_task_assigned.delay(str(task.id), added_ids))  # pyright: ignore[reportCallIssue]
+        if task.status != old_status:
+            on_commit(lambda: notify_task_status_changed.delay(str(task.id), old_status))  # pyright: ignore[reportCallIssue]
         Log.record(self.kwargs['team_id'], self.request.user, f"{self.request.user.username} updated task '{task.title}'")  # pyright: ignore[reportAttributeAccessIssue]
 
     @atomic()

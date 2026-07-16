@@ -1,5 +1,5 @@
 from django.db import IntegrityError
-from django.db.transaction import atomic
+from django.db.transaction import atomic, on_commit
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +10,7 @@ from logs.models import Log
 from .models import Invitation, InvitationStatus, Membership, Role, Team
 from .permissions import HasPermission, IsInviteReceiver, IsSelfMembership, Scope
 from .serializers import InvitationSerializer, MembershipSerializer, TeamSerializer
+from .tasks import notify_invitation
 
 # Create your views here.
 
@@ -88,9 +89,9 @@ class InviteViewSet(ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        # TODO: Background email sending
         team_id = self.kwargs['team_id']
-        serializer.save(team_id=team_id, sender_id=self.request.user.pk)
+        invite = serializer.save(team_id=team_id, sender_id=self.request.user.pk)
+        on_commit(lambda: notify_invitation.delay(str(invite.id)))  # pyright: ignore[reportCallIssue]
 
     def perform_update(self, serializer):
         team_id = self.kwargs['team_id']
