@@ -45,11 +45,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-          test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=5)"]
-          interval: 5s
-          timeout: 3s
-          retries: 10
 
   nginx:
     image: nginx:1.27-alpine
@@ -64,8 +59,7 @@ services:
       - static:/static:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
   celery_worker:
     build:
@@ -80,8 +74,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      backend:
-        condition: service_healthy
 
   celery_beat:
     build:
@@ -95,8 +87,6 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      backend:
         condition: service_healthy
 
 volumes:
