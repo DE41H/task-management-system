@@ -19,6 +19,8 @@ RUN groupadd -r app && useradd -r -g app app
 
 COPY --from=builder --chown=app:app /app /app
 
+RUN mkdir -p /app/staticfiles && chown app:app /app/staticfiles
+
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
