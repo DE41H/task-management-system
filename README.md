@@ -23,6 +23,7 @@ A multi-tenant REST API for teams, projects, tasks, and activity tracking — bu
 [Roles & Permissions](#roles--permissions) ·
 [API](#api-surface) ·
 [Quickstart](#quickstart) ·
+[Frontend](#frontend) ·
 [Deployment](#deployment) ·
 [Roadmap](#roadmap)
 
@@ -225,6 +226,30 @@ curl -X POST http://localhost:8000/api/v1/teams/ \
 ```
 
 </details>
+
+---
+
+## Frontend
+
+A single-page React app (React 19 + Vite + `react-router-dom`) lives in [`frontend/`](frontend/). It's a Linear-inspired, Discord-flavored dark UI covering the full API surface — teams, projects, tasks, comments, members, invitations, and the activity feed.
+
+> **Prerequisites:** [Bun](https://bun.sh/) `1.3+`. The dev server proxies `/api` to the backend, so run the API on port `8000` first (see [Quickstart](#quickstart)).
+
+```bash
+cd frontend
+bun install                      # install dependencies
+bun run dev                      # Vite dev server → http://localhost:5173
+```
+
+Vite proxies `/api` → `http://localhost:8000`, so no CORS configuration is required in development. Point at a different API by setting `VITE_API_URL` (defaults to `/api/v1`).
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start the Vite dev server with hot-reload on port `5173` |
+| `bun run build` | Produce an optimized production build in `frontend/dist/` |
+| `bun run preview` | Serve the production build locally |
+
+**Stack:** React 19, Vite, `react-router-dom` v7, `lucide-react` icons, and `@fontsource/inter` — no CSS framework; styling is hand-authored design tokens in `src/styles/`. JWT access/refresh tokens are held in `localStorage` with transparent refresh-on-401.
 
 ---
 
