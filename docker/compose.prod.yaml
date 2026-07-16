@@ -58,6 +58,7 @@ services:
       - ../nginx/nginx.prod.conf:/etc/nginx/templates/default.conf.template:ro
       - static:/static:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
 

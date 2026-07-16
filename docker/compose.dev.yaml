@@ -55,6 +55,7 @@ services:
       - DOMAIN=localhost
     volumes:
       - ../nginx/nginx.dev.conf:/etc/nginx/templates/default.conf.template:ro
+      - ../frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
 
