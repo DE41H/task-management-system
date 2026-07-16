@@ -12,6 +12,7 @@
 
 | # | Decision |
 |---|----------|
+| 00 | [Django + DRF as the foundation](#adr-00--django--drf-as-the-foundation) |
 | 01 | [UUIDv7 primary keys everywhere](#adr-01--uuidv7-primary-keys-everywhere) |
 | 02 | [Multi-tenancy through URL-scoped querysets](#adr-02--multi-tenancy-through-url-scoped-querysets) |
 | 03 | [RBAC as a code-defined role → scope map](#adr-03--rbac-as-a-code-defined-role--scope-map) |
@@ -24,6 +25,22 @@
 | 10 | [URL-path API versioning from day one](#adr-10--url-path-api-versioning-from-day-one) |
 | 11 | [uv-based multi-stage container build](#adr-11--uv-based-multi-stage-container-build) |
 | 12 | [Custom user model with unique email](#adr-12--custom-user-model-with-unique-email) |
+| 13 | [Celery + Redis for background email delivery](#adr-13--celery--redis-for-background-email-delivery) |
+
+Also: [Problems faced & debugging](#problems-faced--debugging) · [Looking ahead](#looking-ahead)
+
+---
+
+## ADR-00 — Django + DRF as the foundation
+
+**Context.** The system is a relational, permission-heavy CRUD API: four entity levels (team → project → task → comment), a role matrix enforced on every endpoint, and auth with token lifecycle management. Candidates considered: Django + DRF, FastAPI + SQLAlchemy, and Express/NestJS.
+
+**Decision.** **Django 6 with Django REST Framework.** Django ships the parts this task grades — ORM with migrations, a hardened auth/password stack, and an admin — while DRF's building blocks map almost one-to-one onto the requirements: serializers (validation), composable permission classes (RBAC), viewsets + routers (CRUD), and built-in pagination, throttling, filtering, and versioning. The surrounding ecosystem (simplejwt, django-filter, drf-spectacular, Anymail, Celery integration) is mature enough that no security-critical component had to be hand-rolled.
+
+**Consequences.**
+- Authentication, password hashing, and validation come battle-tested rather than bespoke — the highest-risk code in the project is the least custom.
+- The stack is sync-first. That fits a CRUD-bound workload behind gunicorn workers; if real-time features land (see roadmap), Django Channels is the incremental path.
+- DRF's conventions carry more "magic" than a micro-framework — mitigated by keeping each app small and the permission model explicit in one file.
 
 ---
 
@@ -84,7 +101,7 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 **Consequences.**
 - Race conditions on uniqueness are *resolved by Postgres*, not merely made unlikely.
 - By convention, `IntegrityError` is caught around the transaction boundary (or re-raised immediately inside it), keeping the catch-and-translate pattern transaction-safe.
-- Invariants that span rows — such as "a team always has at least one owner" — are enforced by in-transaction checks; strengthening these with row-level locking is on the roadmap.
+- Invariants that span rows — such as "a team always has at least one owner" — are enforced by in-transaction checks. The leave/remove path serializes these with a `select_for_update` on the team row; extending the same locking to the role-change path is on the roadmap.
 
 ---
 
@@ -118,7 +135,7 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 ## ADR-07 — Stateless JWT auth with rotation & blacklist
 
-**Context.** The API serves programmatic clients and a future SPA; session cookies would drag CSRF concerns into every client.
+**Context.** The API serves programmatic clients and the bundled React SPA; session cookies would drag CSRF concerns into every client.
 
 **Decision.** `djangorestframework-simplejwt` with deliberately tight settings: **15-minute access tokens**, 1-day refresh tokens, `ROTATE_REFRESH_TOKENS` + `BLACKLIST_AFTER_ROTATION` so every refresh invalidates its predecessor. Logout blacklists the refresh token, and a **password change blacklists every outstanding refresh token** for the user, ending all other sessions.
 
@@ -170,7 +187,7 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 **Context.** Images should be small, reproducible, and not run as root; dependency resolution should be locked and fast.
 
-**Decision.** A two-stage Dockerfile: an `astral-sh/uv` builder runs `uv sync --frozen` (dependencies first, for layer caching; bytecode precompiled), then a slim `python:3.13` runtime stage copies the virtualenv and runs as a dedicated **non-root** user. Compose runs migrations and `collectstatic` on boot; nginx terminates TLS (Let's Encrypt), redirects HTTP→HTTPS, and serves static files with 28-day caching. `/health/` reports database and cache connectivity with latencies for external monitors.
+**Decision.** A two-stage Dockerfile: an `astral-sh/uv` builder runs `uv sync --frozen` (dependencies first, for layer caching; bytecode precompiled), then a slim `python:3.13` runtime stage copies the virtualenv and runs as a dedicated **non-root** user. Compose runs migrations and `collectstatic` on boot; nginx terminates TLS (Let's Encrypt), redirects HTTP→HTTPS, and serves static files with one-year immutable caching and gzip. `/health/` reports database and cache connectivity with latencies for external monitors.
 
 **Consequences.**
 - `uv.lock` makes builds reproducible; the runtime image carries no build toolchain.
@@ -190,12 +207,68 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 ---
 
+## ADR-13 — Celery + Redis for background email delivery
+
+**Context.** Invitations, task assignments, and status changes trigger emails. Sending them inline would couple request latency — and worse, request *success* — to a third-party email provider.
+
+**Decision.** **Celery** workers with Redis as the broker (already deployed for caching and throttling), delivering through Anymail → Resend. Three rules shape the integration:
+
+1. **Dispatch on commit** — every `.delay()` is wrapped in `transaction.on_commit`, so an email can never be sent for a write that rolled back.
+2. **IDs over payloads** — tasks receive object IDs and re-read fresh state, never serialized snapshots that could go stale in the queue.
+3. **Retry with backoff** — provider/network errors auto-retry up to 5 times with exponential backoff; a flaky SMTP moment doesn't drop mail.
+
+`django-celery-beat` (database scheduler) is wired in as the home for future periodic jobs. Task payloads use msgpack for compactness.
+
+**Consequences.**
+- API latency is independent of the email provider; a Resend outage degrades to delayed mail, not failed requests.
+- Dedicated worker and beat containers ship in both compose stacks — the dev/prod topology is identical.
+- The activity-log-style guarantee extends to email: no notification without its committed action.
+
+---
+
+## Problems faced & debugging
+
+The bugs that shaped the codebase, and how they were run down. Each one is visible in the git history.
+
+### 1. Concurrent registration race
+
+Two simultaneous signups with the same email both passed DRF's unique validators (each transaction couldn't see the other's uncommitted row), and the loser crashed with an unhandled `IntegrityError` → 500. Reproduced with parallel `curl` requests. The fix — catch `IntegrityError` at the create boundary and translate it into a field-level `400` — became the general pattern later formalized in [ADR-04](#adr-04--database-constraints-as-the-source-of-truth): let Postgres arbitrate races, translate at the edge.
+
+### 2. The last-owner invariant, twice
+
+The "a team must keep at least one owner" rule broke two ways before it held:
+
+- **Wrong exclusion.** The owner-count check excluded rows by *user* (`exclude(user_id=...)`) instead of by the *membership being changed* (`exclude(id=instance.id)`), so demoting an owner miscounted whenever the requester was also an owner.
+- **Check outside the transaction.** The removal-path check originally lived in `get_object()`, which runs before `perform_destroy`'s `@atomic` block — so under concurrency, two removals could each pass the check and then both commit, stranding the team ownerless. The check moved inside the transaction, guarded by `select_for_update` on the team row to serialize concurrent departures.
+
+### 3. Silent pagination misordering
+
+DRF logged `UnorderedObjectListWarning` on list endpoints — page contents weren't stable across requests because the querysets had no explicit ordering. Since UUIDv7 keys are time-ordered ([ADR-01](#adr-01--uuidv7-primary-keys-everywhere)), appending `order_by('-id')` to every list queryset fixed ordering without any new index.
+
+### 4. Docker dev stack: the bind-mount vs virtualenv fight
+
+The dev compose bind-mounts the source tree (`..:/app`) for hot reload — which silently *shadowed* the image's `/app/.venv`, so containers started with no dependencies. The fix is an anonymous volume for `/app/.venv` layered over the bind mount. A follow-up typo then put that volume entry under `env_file:` instead of `volumes:` in the beat service, which took a compose-config diff against the working services to spot.
+
+### 5. Health-check deadlock in production
+
+The backend container had a Docker healthcheck probing `http://127.0.0.1:8000/health/`, and nginx/Celery waited on `service_healthy`. In production `SECURE_SSL_REDIRECT` answers plain-HTTP probes with a `301` — the probe followed it to an HTTPS port that doesn't exist inside the container, failed forever, and the whole stack deadlocked at startup. Resolution: drop the internal probe (Docker's `depends_on` gains little for a stateless web process) and keep `/health/` for external monitors, which arrive through nginx over TLS.
+
+### 6. gunicorn refusing to start as non-root
+
+The hardened image creates a system user with `useradd -r`, which doesn't create a home directory — and gunicorn crashed at boot trying to resolve one. Fixed with `useradd -r -m`. A reminder that "run as non-root" is a checklist item with sharp edges: the runtime needs a real, writable identity, not just a UID.
+
+---
+
 ## Looking ahead
 
 A few refinements are queued behind the current milestone:
 
-1. **Row-level locking** — `select_for_update` on the team row to serialize concurrent membership changes under the last-owner invariant.
-2. **Invite delivery** — background email notifications for newly created invitations.
+1. **Row-level locking on role changes** — extend the `select_for_update` already guarding member removal to the owner-demotion path.
+2. **Fuzzy search** — Postgres `pg_trgm` similarity on task titles, upgrading the current `icontains` search.
+3. **Response caching** — Redis-backed caching for hot, read-heavy endpoints (team member lists, activity feeds).
+4. **Real-time updates** — live task and comment events over WebSockets via Django Channels.
+5. **OAuth sign-in** — Google as a second identity path alongside password auth.
+6. **API test suite** — automated tests asserting every cell of the RBAC permission matrix.
 
 ---
 
