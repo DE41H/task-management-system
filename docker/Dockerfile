@@ -15,9 +15,7 @@ FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-RUN groupadd -r app && useradd -r -g app app \
-    && mkdir -p /app/staticfiles \
-    && chown -R app:app /app
+RUN groupadd -r app && useradd -r -g app app
 
 COPY --from=builder --chown=app:app /app /app
 
