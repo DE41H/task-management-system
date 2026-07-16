@@ -82,9 +82,9 @@ services:
     command: celery -A cfg beat --loglevel=info
     volumes:
       - ..:/app
+      - /app/.venv
     env_file:
       - ../.env.dev
-      - /app/.venv
     depends_on:
       db:
         condition: service_healthy
