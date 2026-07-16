@@ -65,6 +65,7 @@ services:
       command: celery -A cfg worker --loglevel=info
       volumes:
         - ..:/app
+        - /app/.venv
       env_file:
         - ../.env.dev
       depends_on:
@@ -83,6 +84,7 @@ services:
       - ..:/app
     env_file:
       - ../.env.dev
+      - /app/.venv
     depends_on:
       db:
         condition: service_healthy
