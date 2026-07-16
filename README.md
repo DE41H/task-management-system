@@ -52,7 +52,7 @@ A multi-tenant REST API for teams, projects, tasks, and activity tracking — bu
 ## Architecture
 
 ```
-Client ──▶ nginx (TLS, static) ──▶ gunicorn / Django ──▶ PostgreSQL 17 (pooled)
+Client ──▶ nginx (TLS, SPA + static) ──▶ gunicorn / Django ──▶ PostgreSQL 17 (pooled)
                                         │
                                         └──▶ Redis 7 (cache, throttling, Celery broker)
                                                   │
@@ -87,6 +87,7 @@ TMS/
 ├── tasks/       # Project-scoped tasks & comments
 ├── logs/        # Per-team append-only activity feed
 ├── cfg/         # Settings, root URLconf, WSGI/ASGI
+├── frontend/    # React SPA (Vite + Bun); dist/ is served by nginx
 ├── docker/      # Dockerfile + dev/prod compose stacks
 └── nginx/       # Reverse-proxy configs (dev & TLS-terminated prod)
 ```
@@ -176,7 +177,7 @@ All endpoints are versioned under `/api/v1/` and paginated (20 per page).
 
 ## Quickstart
 
-> **Prerequisites:** Docker & Docker Compose.
+> **Prerequisites:** Docker & Docker Compose, plus [Bun](https://bun.sh/) `1.3+` to build the frontend.
 
 ```bash
 # 1. Clone
@@ -185,11 +186,16 @@ git clone <repo-url> && cd TMS
 # 2. Configure
 cp .env.example .env.dev        # edit values as needed
 
-# 3. Run — Postgres, Redis, Django (auto-migrate) & nginx
+# 3. Build the frontend — nginx serves frontend/dist directly
+cd frontend && bun install && bun run build && cd ..
+
+# 4. Run — Postgres, Redis, Django (auto-migrate) & nginx
 docker compose -f docker/compose.dev.yaml up --build
 ```
 
-The API is now live at **http://localhost:8000/api/v1/** (nginx proxies on port 80). Source is bind-mounted, so the dev server hot-reloads.
+The full app is now live at **http://localhost:8000/** — nginx serves the React SPA from `frontend/dist` and proxies `/api`, `/admin`, and `/health` to Django. Backend source is bind-mounted, so the dev server hot-reloads; frontend changes need a re-run of `bun run build`.
+
+> **Note:** build the frontend *before* `compose up`. The nginx service bind-mounts `frontend/dist`; if it doesn't exist yet, Docker creates it as an empty root-owned directory and the SPA serves 403s.
 
 <details>
 <summary><b>Running natively (without Docker)</b></summary>
@@ -237,7 +243,16 @@ curl -X POST http://localhost:8000/api/v1/teams/ \
 
 A single-page React app (React 19 + Vite + `react-router-dom`) lives in [`frontend/`](frontend/). It's a Linear-inspired, Discord-flavored dark UI covering the full API surface — teams, projects, tasks, comments, members, invitations, and the activity feed.
 
-> **Prerequisites:** [Bun](https://bun.sh/) `1.3+`. The dev server proxies `/api` to the backend, so run the API on port `8000` first (see [Quickstart](#quickstart)).
+There are two ways to run it locally:
+
+**1. Served by nginx (the [Quickstart](#quickstart) default).** Build once, and the compose stack serves the SPA and the API from the same origin:
+
+```bash
+cd frontend && bun install && bun run build && cd ..
+docker compose -f docker/compose.dev.yaml up
+```
+
+**2. Vite dev server (hot-reload, for active frontend work).** Run the API on port `8000` first (see [Quickstart](#quickstart)), then:
 
 ```bash
 cd frontend
@@ -264,12 +279,14 @@ The production stack (`docker/compose.prod.yaml`) runs **gunicorn** (3 workers) 
 ```bash
 cp .env.example .env.prod        # set DEBUG=False, real secrets, hosts & origins
 export DOMAIN=your.domain.example
+cd frontend && bun install --frozen-lockfile && bun run build && cd ..
 docker compose -f docker/compose.prod.yaml up --build -d
 ```
 
 The stack provides:
 
 - HTTP → HTTPS redirect, TLS 1.2/1.3 only, HTTP/2
+- The React SPA served by nginx from `frontend/dist` (built on the host, bind-mounted read-only), with hashed assets cached immutably and `index.html` always revalidated
 - Multi-stage image with `uv`-locked dependencies, running as a non-root user
 - Migrations and `collectstatic` on boot; static files served by nginx with one-year immutable caching and gzip
 - Health-gated startup for Postgres and Redis; `/health/` endpoint for external monitors

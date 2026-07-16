@@ -187,7 +187,7 @@ Views translate `IntegrityError` into friendly `400` responses, letting the data
 
 **Context.** Images should be small, reproducible, and not run as root; dependency resolution should be locked and fast.
 
-**Decision.** A two-stage Dockerfile: an `astral-sh/uv` builder runs `uv sync --frozen` (dependencies first, for layer caching; bytecode precompiled), then a slim `python:3.13` runtime stage copies the virtualenv and runs as a dedicated **non-root** user. Compose runs migrations and `collectstatic` on boot; nginx terminates TLS (Let's Encrypt), redirects HTTP→HTTPS, and serves static files with one-year immutable caching and gzip. `/health/` reports database and cache connectivity with latencies for external monitors.
+**Decision.** A two-stage Dockerfile: an `astral-sh/uv` builder runs `uv sync --frozen` (dependencies first, for layer caching; bytecode precompiled), then a slim `python:3.13` runtime stage copies the virtualenv and runs as a dedicated **non-root** user. Compose runs migrations and `collectstatic` on boot; nginx terminates TLS (Let's Encrypt), redirects HTTP→HTTPS, serves static files and the built React SPA (`frontend/dist`, bind-mounted read-only, with an `index.html` fallback for client-side routes) with one-year immutable caching and gzip, and proxies only `/api`, `/admin`, and `/health` to Django. `/health/` reports database and cache connectivity with latencies for external monitors.
 
 **Consequences.**
 - `uv.lock` makes builds reproducible; the runtime image carries no build toolchain.
