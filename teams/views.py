@@ -57,6 +57,7 @@ class MembershipViewSet(ModelViewSet):
 
     @atomic()
     def perform_update(self, serializer):
+        Team.objects.select_for_update().get(id=serializer.instance.team_id)  # pyright: ignore[reportOptionalMemberAccess]
         membership = serializer.save()
         Log.record(membership.team_id, self.request.user, f"{self.request.user.username} changed {membership.user.username}'s role to {membership.role}")  # pyright: ignore[reportAttributeAccessIssue]
 
